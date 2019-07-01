@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <!-- Latest compiled and minified CSS & JS -->
+  <link rel="stylesheet" href="styling.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://code.jquery.com/jquery.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <title>Survery</title>
+</head>
+<body>
+    <h1>Welcome to the Survery Page</h1>
+
+
+
+    <div class="row">
+        <div class="col-lg-12">
+          <!-- Reservation Page -->
+          <div class="card">
+            <div class="card-header">
+              Friend Finder Survery
+            </div>
+            <div class="card-body">
+              <form role="form">
+                <div class="form-group">
+                  <label for="name">Name</label>
+                  <input type="text" class="form-control" id="name">
+                </div>
+                <div class="form-group">
+                  <label for="photo">Photo</label>
+                  <input type="text" class="form-control" id="photo">
+                </div>
+                
+                <div class="form-group">
+                    <label for="statement_1">Statement 1</label>
+                    <select class="form-control" id="statement1">
+                        <option value=1>1</option>
+                        <option value=2>2</option>
+                        <option value=3>3</option>
+                        <option value=4>4</option>
+                        <option value=5>5</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="statement_2">Statement 2</label>
+                    <select class="form-control" id="statement2">
+                      <option value=1>1</option>
+                      <option value=2>2</option>
+                      <option value=3>3</option>
+                      <option value=4>4</option>
+                      <option value=5>5</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="statement_3">Statement 3</label>
+                    <select class="form-control" id="statement3">
+                        <option value=1>1</option>
+                        <option value=2>2</option>
+                        <option value=3>3</option>
+                        <option value=4>4</option>
+                        <option value=5>5</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary submit">Submit</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trigger/Open The Modal -->
+<button id="myBtn">Open Modal</button>
+
+<!-- The Modal -->
+<div id="myModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <p id="name_p"></p>
+    <img src="" alt="" id="photo_img" height="100" width="100">
+  </div>
+
+</div>
+
+
+<script type="text/javascript">
+
+
+// Get the modal
+var modal = document.getElementById("myModal");
+
+// Get the button that opens the modal
+var btn = document.getElementById("myBtn");
+
+// Get the <span> element that closes the modal
+var span = document.getElementsByClassName("close")[0];
+
+// When the user clicks on the button, open the modal 
+btn.onclick = function() {
+  modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+span.onclick = function() {
+  modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal) {
+    modal.style.display = "none";
+  }
+}
+
+
+
+
+    function suggestFriend(scores, newMember){
+        // Get all surveys
+    
+    $.ajax({ url: "/api/friends", method: "GET" })
+      .then((tableData) => {
+
+        
+        console.log(tableData);
+        console.log("-----------------Got Data Back-------------------");
+
+        let closest_match = 0;
+        let lowest_score = 1000;
+        for (let i = 0; i < tableData.length; i++) {
+            if(tableData[i].scores && tableData[i].scores.length > 0 && tableData[i].name != newMember){
+                let curr_scores = tableData[i].scores;
+                // calculate score here
+                let diff = getDifferenceInScore(curr_scores, scores);
+                if(diff < lowest_score){
+                    lowest_score = diff;
+                    closest_match = i;
+                }
+            }
+        }
+        console.log("Suggesting friend " + tableData[closest_match].name);
+        openModal(tableData[closest_match]);
+      });
+      
+    }
+
+    function getDifferenceInScore(score_1, score_2){
+        let sum = 0;
+        for (let i = 0; i < score_1.length; i++) {
+            let num_1 = Number(score_1[i]);
+            let num_2 = Number(score_2[i]);
+            let diff = num_1 - num_2;
+            if(diff < 0){
+                sum += - diff;
+            }else {
+                sum +=  diff;
+            }
+        }
+        return sum;
+    }
+
+    $(".submit").on("click", (event)  => {
+      event.preventDefault();
+
+    let scores = [];
+    let statement_1 = $("#statement1").val().trim();
+    let statement_1_int = parseInt(statement_1, 10);
+
+    let statement_2 = $("#statement2").val().trim();
+    let statement_2_int = parseInt(statement_2,10);
+
+    let statement_3 = $("#statement3").val().trim();
+    let statement_3_int = parseInt(statement_3,10);
+    scores.push(statement_1_int);
+    scores.push(statement_2_int);
+    scores.push(statement_3_int);
+
+
+    // Here we grab the form elements
+    const newSurvey = {
+      name: $("#name").val().trim(),
+      photo: $("#photo").val().trim(),
+      scores: scores
+    };
+
+    console.log(newSurvey);
+    
+    $.post("/api/friends", newSurvey,
+      (data) => {
+
+        // If a table is available... tell user they are booked.
+        if (data) {
+          alert("Yay! Survery Added!");
+          suggestFriend(scores, newSurvey.name);
+        }
+
+        // If a table is available... tell user they on the waiting list.
+        else {
+          alert("Survery failed to add");
+        }
+
+        // Clear the form when submitting
+        $("#name").val("");
+        $("#photo").val("");
+        $("#statement1").val("");
+        $("#statement1").val("");
+        $("#statement1").val("");
+      });
+    });
+
+    function openModal(friend){
+        let name = friend.name;
+        let photo = friend.photo;
+        let name_element = document.getElementById("name_p");
+        let photo_element = document.getElementById("photo_img");
+        name_element.innerHTML = name;
+        photo_element.src = photo;
+        // photo_element.innerHTML = photo;
+        modal.style.display = "block";
+    }
+
+</script>  
+
+</body>
+</html>
